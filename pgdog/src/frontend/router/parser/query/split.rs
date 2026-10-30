@@ -52,6 +52,14 @@ impl QueryParser {
                         || check.statements() == 1 && check.txn == 0);
 
                 if safe_not_to_split {
+                    // BEGIN, COMMIT and ROLLBACK can be answered without a server,
+                    // which would drop the rest of the query. Send the whole thing as-is.
+                    if let Some(Node::TransactionStmt(_)) = stmts.stmts().next() {
+                        return Ok(Some(Command::Query(Route::write(
+                            context.shards_calculator.shard(),
+                        ))));
+                    }
+
                     // Safe to use the first statement for routing.
                     Ok(None)
                 } else if safe_to_split {

@@ -72,6 +72,35 @@ fn test_direct_shard_multi_statement_is_not_split() {
 }
 
 #[test]
+fn test_single_shard_transaction_control_multi_statement_is_passed_through() {
+    for query in [
+        "BEGIN; INSERT INTO split_test VALUES (1); COMMIT",
+        "START TRANSACTION; SELECT 1",
+        "BEGIN READ ONLY; SELECT 1; COMMIT",
+        "COMMIT; SELECT 1",
+        "ROLLBACK; INSERT INTO split_test VALUES (1)",
+    ] {
+        let mut test = QueryParserTest::new_single_shard(&config());
+        let command = test.execute(vec![Query::new(query).into()]);
+
+        assert!(
+            matches!(command, Command::Query(ref route) if route.is_write()),
+            "expected a write Command::Query for `{query}`, got {command:#?}",
+        );
+    }
+}
+
+#[test]
+fn test_direct_shard_transaction_control_multi_statement_is_passed_through() {
+    let command = execute("/* pgdog_shard: 1 */ BEGIN; SELECT 1; COMMIT");
+
+    assert!(
+        matches!(command, Command::Query(ref route) if route.shard().is_direct()),
+        "expected a direct-shard Command::Query, got {command:#?}",
+    );
+}
+
+#[test]
 fn test_ddl_only_multi_statement_is_not_split() {
     let command = execute("CREATE TABLE split_test (id bigint); DROP TABLE split_test");
 

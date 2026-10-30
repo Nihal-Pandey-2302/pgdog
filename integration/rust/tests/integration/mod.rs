@@ -22,6 +22,7 @@ pub mod limit;
 pub mod maintenance_mode;
 pub mod max;
 pub mod multi_set;
+pub mod multi_statement_transaction;
 pub mod non_deterministic_funcs;
 pub mod notify;
 mod numeric_infinity;
